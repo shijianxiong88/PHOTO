@@ -1,51 +1,51 @@
-# Family Trip Album System Design
+# 家庭出游相册系统设计
 
-## Purpose
+## 目标
 
-Build a home-server system for managing family weekend photos and videos. The first version focuses on automatically grouping imported media into trip records so the family can remember where they went, when they went, and which photos and videos belong together.
+建设一个运行在家庭服务器上的照片和视频管理系统，用来整理家人周末出游时拍摄的素材。第一版重点解决“自动把照片和视频归并成一次次出游记录”，让家人以后能快速想起去过哪里、什么时候去的、当时拍了哪些照片和视频。
 
-The system will run on an Ubuntu laptop used as a home server. Access starts inside the home LAN only. External access, automatic phone sync, richer album presentation, and AI-generated travel journals can be added after the core organizing flow is reliable.
+系统部署在一台安装 Ubuntu 的笔记本电脑上，作为家庭服务器使用。第一阶段只支持家庭局域网访问。外网访问、手机自动同步、更精致的相册界面、AI 自动生成游记等能力，等核心整理流程稳定后再逐步加入。
 
-## First-Version Scope
+## 第一版范围
 
-The first version includes:
+第一版包含：
 
-- Manual import from phones or cameras into an `incoming/` folder.
-- Media scanning for photo and video files.
-- Metadata extraction for capture time, GPS coordinates, file type, dimensions, device model, and video duration when available.
-- Thumbnail generation for browsing.
-- Automatic grouping of media into trip records using capture dates, weekend windows, time gaps, and GPS clustering.
-- A local database for files, metadata, locations, and trip records.
-- A LAN-only web interface for browsing trips, reviewing media, editing trip titles, and merging or splitting trip groups.
+- 从手机或相机手动导入照片、视频到 `incoming/` 文件夹。
+- 扫描常见照片和视频文件。
+- 提取拍摄时间、GPS 坐标、文件类型、图片尺寸、设备型号、视频时长等元数据。
+- 生成缩略图，方便网页浏览。
+- 根据拍摄日期、周末时间窗口、拍摄间隔、GPS 聚类等信息，自动归并成出游记录。
+- 使用本地数据库保存文件、元数据、地点和出游记录。
+- 提供只在家庭局域网访问的网页界面，用来浏览出游记录、查看媒体、修改标题、合并或拆分行程。
 
-The first version does not include:
+第一版不包含：
 
-- Public internet access.
-- Automatic phone sync.
-- Full mobile app support.
-- Face recognition.
-- Advanced video analysis.
-- Fully automatic publishing of final travel journals.
+- 公网访问。
+- 手机自动同步。
+- 完整手机 App。
+- 人脸识别。
+- 深度视频内容分析。
+- 全自动发布最终游记。
 
-## Recommended Architecture
+## 推荐架构
 
-Use a file-based media library plus a small database and web application.
+采用“文件媒体库 + 小型数据库 + Web 应用”的结构。
 
-The media files remain on disk as the source of truth. The database stores extracted metadata, generated thumbnails, detected trip groups, user edits, and later AI-generated journal drafts. This keeps the system simple, recoverable, and easy to migrate.
+照片和视频原文件保存在磁盘上，作为系统的真实来源。数据库只保存提取出的元数据、缩略图路径、自动识别出的出游记录、用户手动修改记录，以及后续 AI 生成的游记草稿。这样系统更简单，也更容易备份、恢复和迁移。
 
-Recommended stack:
+推荐技术栈：
 
-- Backend: Python with FastAPI.
-- Database: SQLite for the first version.
-- Media tools: ExifTool for metadata, FFmpeg for video metadata and thumbnails.
-- Frontend: React or a simple server-rendered UI, depending on implementation speed.
-- Deployment: Docker Compose on the Ubuntu laptop.
+- 后端：Python + FastAPI。
+- 数据库：第一版使用 SQLite。
+- 媒体工具：ExifTool 提取照片元数据，FFmpeg 处理视频元数据和缩略图。
+- 前端：优先使用简单的服务端渲染页面，必要时再引入 React。
+- 部署：在 Ubuntu 笔记本上使用 Docker Compose。
 
-SQLite is enough for a family archive in the first version. PostgreSQL can be introduced later if the system grows or if other services need shared data.
+SQLite 足够支撑家庭相册第一版。如果以后数据规模更大，或需要和其他服务共享数据，再考虑迁移到 PostgreSQL。
 
-## Storage Layout
+## 存储目录
 
-Use a clear directory structure on the server:
+服务器上使用清晰的目录结构：
 
 ```text
 family-album/
@@ -61,185 +61,185 @@ family-album/
     journals/
 ```
 
-`incoming/` is where the family copies new photos and videos.
+`incoming/` 用于存放刚从手机或相机拷贝过来的新照片、新视频。
 
-`library/originals/` stores imported files after the scanner registers them. Files should be arranged by capture year and month, for example `library/originals/2026/06/`.
+`library/originals/` 用于保存系统登记后的原始文件。文件按拍摄年月归档，例如 `library/originals/2026/06/`。
 
-`library/thumbnails/` stores generated preview images.
+`library/thumbnails/` 用于保存系统生成的缩略图。
 
-`exports/journals/` will later store Markdown or HTML travel journals.
+`exports/journals/` 后续用于保存 Markdown 或 HTML 格式的游记。
 
-## Data Model
+## 数据模型
 
-Core entities:
+核心实体：
 
-- `MediaFile`: one photo or video, with path, hash, file type, size, dimensions, capture time, GPS, device model, and scan status.
-- `LocationPoint`: GPS latitude and longitude extracted from media.
-- `Place`: a human-readable place derived from GPS lookup or manual naming.
-- `Trip`: one detected outing, with title, date range, primary place, status, and confidence score.
-- `TripMedia`: relationship between trips and media, including ordering and featured status.
-- `UserEdit`: audit trail for manual corrections such as merging trips, splitting trips, or renaming places.
+- `MediaFile`：单个照片或视频，包含路径、内容哈希、文件类型、文件大小、尺寸、拍摄时间、GPS、设备型号和扫描状态。
+- `LocationPoint`：从媒体文件中提取出的 GPS 经纬度。
+- `Place`：由 GPS 反查或用户手动命名得到的地点。
+- `Trip`：一次自动识别出的出游记录，包含标题、日期范围、主要地点、状态和置信度。
+- `TripMedia`：出游记录和照片视频之间的关联关系，包含排序和是否精选。
+- `UserEdit`：用户手动修正记录，例如合并行程、拆分行程、重命名地点等。
 
-The system should preserve original metadata and record derived values separately so rescanning or improving algorithms does not destroy user edits.
+系统应保留原始元数据，并把自动推导出的结果单独记录。这样以后即使重新扫描或优化算法，也不会覆盖用户已经手动修正过的内容。
 
-## Import Flow
+## 导入流程
 
-1. User copies files into `incoming/`.
-2. Scanner detects supported media files.
-3. Scanner calculates a content hash to avoid duplicates.
-4. Scanner extracts metadata and stores it in the database.
-5. Scanner moves or copies registered files into `library/originals/`.
-6. Thumbnail worker creates previews.
-7. Trip grouping worker assigns new files to existing or new trip records.
-8. Web UI shows new or changed trip records for review.
+1. 用户把文件复制到 `incoming/`。
+2. 扫描器识别支持的照片和视频文件。
+3. 扫描器计算文件内容哈希，用于识别重复文件。
+4. 扫描器提取元数据并写入数据库。
+5. 成功登记后，把文件复制到 `library/originals/`。
+6. 缩略图任务生成预览图。
+7. 出游聚合任务把新文件分配到已有或新建的出游记录。
+8. Web 界面展示新增或变化的出游记录，供用户检查。
 
-By default, original files should not be deleted from `incoming/` until the import succeeds. The implementation can move files after success or keep a quarantine folder for failed imports.
+默认情况下，系统不自动删除 `incoming/` 中的原文件。导入成功后，系统会把文件复制到媒体库，用户可以确认无误后再手动清理 `incoming/`。
 
-## Trip Detection Rules
+## 出游识别规则
 
-The first grouping algorithm should be explainable rather than clever.
+第一版的聚合算法应当可解释，而不是一开始就追求复杂智能。
 
-Inputs:
+输入信息：
 
-- Capture date and time.
-- Weekend or holiday-like time windows.
-- GPS coordinates when available.
-- Time gaps between shots.
-- Distance between GPS points.
+- 拍摄日期和时间。
+- 周末或类似节假日的时间窗口。
+- GPS 坐标。
+- 照片、视频之间的拍摄时间间隔。
+- GPS 点之间的距离。
 
-Initial heuristic:
+初始规则：
 
-- Sort media by capture time.
-- Group media taken within the same weekend window.
-- Split groups when time gaps are large and GPS locations are far apart.
-- Merge groups when they are close in time and location.
-- Mark trips with missing GPS as lower confidence.
+- 按拍摄时间排序所有媒体。
+- 优先把同一个周末时间窗口内的媒体归成一组。
+- 如果拍摄时间间隔很大，且 GPS 距离也很远，则拆分为不同出游记录。
+- 如果两组媒体时间接近、地点接近，则合并为同一次出游。
+- 缺少 GPS 的媒体可以参与分组，但对应出游记录标记为较低置信度。
 
-Each trip gets a confidence value. Low-confidence trips should be easy to review manually in the UI.
+每条出游记录都应有一个置信度。低置信度记录要在界面上容易发现，方便人工检查。
 
-Manual edits are part of the product, not an exception. Users must be able to merge two trips, split one trip, rename a trip, change the primary place, and mark featured photos.
+人工修正是系统设计的一部分，不是异常情况。用户必须能够合并两个出游记录、拆分一个出游记录、重命名出游标题、修改主要地点，以及标记精选照片。
 
-## Location Handling
+## 地点处理
 
-The first version should store raw GPS coordinates and use a cache for place names.
+第一版应保存原始 GPS 坐标，并预留地点名称缓存。
 
-Reverse geocoding can start with one of these approaches:
+地点名称可以分阶段实现：
 
-- Manual place naming only.
-- OpenStreetMap Nominatim with caching and rate limiting.
-- A later paid map API if higher accuracy is needed.
+- 第一阶段只支持手动地点命名。
+- 第二阶段接入 OpenStreetMap Nominatim，并做好缓存和访问频率限制。
+- 如果以后需要更高准确度，再考虑付费地图 API。
 
-The system should work even when reverse geocoding is unavailable. In that case, it can show coordinates, a map point if map tiles are available, or a manually entered place name.
+即使反向地理编码不可用，系统也应正常工作。此时可以显示 GPS 坐标、地图点位，或用户手动输入的地点名称。
 
-## Web Interface
+## Web 界面
 
-The first web interface should be practical and focused.
+第一版 Web 界面应以实用为主，方便家人反复浏览和整理。
 
-Main views:
+主要页面：
 
-- Trip list: date, title, place, thumbnail, media count, and confidence status.
-- Trip detail: timeline, map area, photo/video grid, metadata summary, and edit controls.
-- Import review: recently imported files and trips that need attention.
-- Settings: library paths, scanner schedule, and location lookup configuration.
+- 出游列表：显示日期、标题、地点、封面缩略图、媒体数量和置信度状态。
+- 出游详情：显示时间线、地图区域、照片视频网格、元数据摘要和编辑操作。
+- 导入检查：显示最近导入的文件，以及需要人工确认的出游记录。
+- 设置页面：配置媒体库路径、扫描计划和地点查询选项。
 
-Important actions:
+重要操作：
 
-- Rename trip.
-- Merge trips.
-- Split trip by selected media.
-- Mark featured media.
-- Edit place name.
-- Trigger rescan.
+- 重命名出游记录。
+- 合并出游记录。
+- 按选择的媒体拆分出游记录。
+- 标记精选照片或视频。
+- 修改地点名称。
+- 手动触发重新扫描。
 
-The UI should be optimized for repeated family use rather than a marketing-style landing page.
+界面风格应偏家庭工具和资料整理，不做营销式首页。第一屏应该直接进入可用的相册或出游列表。
 
-## AI Travel Journal Extension
+## AI 游记扩展
 
-AI-generated travel journals should come after reliable trip grouping.
+AI 自动生成游记应放在“出游识别稳定”之后再做。
 
-Inputs for journal generation:
+游记生成输入：
 
-- Trip date and duration.
-- Place names and rough route.
-- Featured photos and selected video stills.
-- Timeline of moments.
-- Optional user notes.
+- 出游日期和时长。
+- 地点名称和大致路线。
+- 精选照片和选定的视频画面。
+- 时间线中的关键时刻。
+- 用户补充的文字备注。
 
-Output:
+生成结果：
 
-- Markdown draft stored in `exports/journals/`.
-- Editable title, summary, and sections.
-- References to selected photos and videos.
+- Markdown 游记草稿，保存在 `exports/journals/`。
+- 可编辑的标题、摘要和正文段落。
+- 引用精选照片和视频。
 
-The AI should generate drafts, not final truth. The family should be able to edit names, memories, tone, and details before exporting or sharing.
+AI 只生成草稿，不直接当作最终事实。家人应能编辑人物称呼、细节、语气和回忆内容，再决定是否导出或分享。
 
-## Deployment
+## 部署方式
 
-Run the system on the Ubuntu laptop with Docker Compose.
+系统使用 Docker Compose 运行在 Ubuntu 笔记本上。
 
-Services:
+服务组成：
 
-- Web/backend application.
-- Background worker for scanning and thumbnails.
-- Optional reverse geocoding cache.
+- Web/后端应用。
+- 扫描和缩略图后台任务。
+- 可选的地点名称缓存。
 
-First access mode:
+第一阶段访问方式：
 
-- LAN only.
-- URL similar to `http://server-ip:port`.
-- No public port forwarding.
+- 仅家庭局域网访问。
+- 地址类似 `http://服务器IP:端口`。
+- 不做公网端口转发。
 
-Later external access options:
+后续外网访问可选方案：
 
-- Tailscale or WireGuard VPN.
-- Cloudflare Tunnel.
-- Domain plus HTTPS reverse proxy.
+- Tailscale 或 WireGuard VPN。
+- Cloudflare Tunnel。
+- 域名 + HTTPS 反向代理。
 
-External access should be treated as a separate project after local use is stable.
+外网访问应作为独立阶段处理，等本地使用稳定后再设计和实施。
 
-## Error Handling
+## 错误处理
 
-The scanner should handle imperfect media libraries gracefully.
+扫描器要能温和处理真实家庭媒体库中的各种不完美情况。
 
-Expected cases:
+需要处理的情况：
 
-- Duplicate files.
-- Missing capture time.
-- Missing GPS.
-- Unsupported media formats.
-- Corrupt files.
-- Failed thumbnail generation.
-- Reverse geocoding errors.
+- 重复文件。
+- 缺少拍摄时间。
+- 缺少 GPS。
+- 不支持的媒体格式。
+- 损坏文件。
+- 缩略图生成失败。
+- 地点查询失败。
 
-The database should record scan status and error messages. Failed files should appear in an import review screen instead of silently disappearing.
+数据库应记录扫描状态和错误信息。失败文件应显示在导入检查页面，而不是静默消失。
 
-## Testing Strategy
+## 测试策略
 
-Use focused tests around the highest-risk behavior:
+优先测试风险最高的行为：
 
-- Metadata parsing with sample photo and video files.
-- Duplicate detection.
-- Trip grouping from synthetic timelines and GPS coordinates.
-- Manual merge and split behavior.
-- Import idempotency.
-- API endpoints for trip list and trip detail.
+- 使用样例照片和视频测试元数据解析。
+- 测试重复文件识别。
+- 使用构造出的时间线和 GPS 坐标测试出游聚合算法。
+- 测试手动合并和拆分出游记录。
+- 测试重复导入的幂等性。
+- 测试出游列表和出游详情 API。
 
-Manual verification should include copying a small real photo set into `incoming/`, running the scanner, and confirming that generated trips match expectations.
+手动验收时，应复制一小批真实照片到 `incoming/`，运行扫描流程，并确认生成的出游记录是否符合预期。
 
-## Milestones
+## 里程碑
 
-1. Repository scaffold and Docker Compose baseline.
-2. Media scanner with metadata extraction and duplicate detection.
-3. Thumbnail generation.
-4. SQLite schema and trip grouping worker.
-5. Basic LAN web UI for trip list and trip detail.
-6. Manual correction actions for merge, split, rename, and featured media.
-7. Optional location lookup cache.
-8. AI travel journal draft generation.
+1. 搭建项目骨架和 Docker Compose 基线。
+2. 实现媒体扫描、元数据提取和重复文件检测。
+3. 实现缩略图生成。
+4. 建立 SQLite 数据库结构和出游聚合任务。
+5. 实现局域网可访问的基础 Web 页面，包括出游列表和出游详情。
+6. 实现手动修正能力，包括合并、拆分、重命名和精选媒体。
+7. 增加可选地点名称缓存。
+8. 增加 AI 游记草稿生成。
 
-## First Implementation Defaults
+## 第一版默认实现选择
 
-- Use a simple server-rendered interface first, unless the implementation plan finds a strong reason to use React.
-- Copy imported files into `library/originals/` after successful registration and leave the source files in `incoming/` until the user manually clears them.
-- Start with manual place naming and raw GPS display. Add OpenStreetMap Nominatim with caching after the basic trip grouping flow works.
-- Support configurable library paths from the beginning so an external disk can be mounted without changing application code.
+- 前端优先使用简单的服务端渲染页面，除非实施计划发现必须使用 React。
+- 导入成功后，把文件复制到 `library/originals/`，并保留 `incoming/` 中的源文件，直到用户手动清理。
+- 第一阶段只做手动地点命名和原始 GPS 展示。等基础出游聚合流程稳定后，再接入 OpenStreetMap Nominatim 并做缓存。
+- 从一开始就支持可配置媒体库路径，方便以后把外接硬盘挂载到服务器上，而不用改应用代码。
