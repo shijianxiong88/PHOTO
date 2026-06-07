@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block title %}出游记录{% endblock %}
+{% block content %}
+<section class="section-header">
+  <h1>出游记录</h1>
+  <p>按周末、时间和地点自动整理出的家庭出游。</p>
+</section>
+
+{% if trips %}
+  <div class="trip-list">
+    {% for trip in trips %}
+      <article class="trip-card">
+        <h2>{{ trip.title }}</h2>
+        <p>{{ trip.start_at }} - {{ trip.end_at }}</p>
+      </article>
+    {% endfor %}
+  </div>
+{% else %}
+  <section class="empty-state">
+    <h2>还没有出游记录</h2>
+    <p>把照片或视频复制到 incoming 文件夹后，运行扫描任务即可生成记录。</p>
+  </section>
+{% endif %}
+{% endblock %}
