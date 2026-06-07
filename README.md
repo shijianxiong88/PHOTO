@@ -28,3 +28,17 @@ python -m venv .venv
 pip install -e ".[dev]"
 pytest -v
 ```
+
+## Docker 运行
+
+```bash
+docker compose up --build
+```
+
+浏览器访问：
+
+```text
+http://localhost:8000
+```
+
+在 Ubuntu 家庭服务器上，把 `./family-album` 换成外接硬盘或服务器上的真实目录即可。

@@ -1,0 +1,11 @@
+services:
+  family-album:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      MEDIA_ROOT: /srv/family-album
+      APP_HOST: 0.0.0.0
+      APP_PORT: 8000
+    volumes:
+      - ./family-album:/srv/family-album
